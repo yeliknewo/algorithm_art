@@ -15,20 +15,22 @@ widget_ids!(
 );
 
 fn main() {
-    const WIDTH: u32 = 600;
-    const HEIGHT: u32 = 300;
+    const WIDTH: u32 = 1920;
+    const HEIGHT: u32 = 1080;
 
     let mut window: PistonWindow = {
         let title = "character_creator_game";
         let resolution = [WIDTH, HEIGHT];
         let opengl = piston_window::OpenGL::V3_2;
         let mut window_result = WindowSettings::new(title, resolution)
+            .fullscreen(true)
             .exit_on_esc(true)
             .srgb(true)
             .opengl(opengl)
             .build();
         if window_result.is_err() {
             window_result = WindowSettings::new(title, resolution)
+                .fullscreen(true)
                 .exit_on_esc(true)
                 .srgb(false)
                 .opengl(opengl)
@@ -41,7 +43,7 @@ fn main() {
         )
     };
 
-    window.set_ups(20);
+    window.set_ups(60);
 
     let mut ui = conrod::UiBuilder::new().build();
 
@@ -67,20 +69,32 @@ fn main() {
 
     let mut frame = 0;
 
+    let mut time = 0.0;
+
+    let texture_time: f64 = 0.1;
+
     while let Some(event) = window.next() {
         if let Some(e) = conrod::backend::piston_window::convert_event(event.clone(), &window) {
             ui.handle_event(e);
         }
 
-        event.update(|_| {
-            for (x, y, mut pixel) in image_buffer.enumerate_pixels_mut() {
-                pixel[0] = (((x) % 255).wrapping_add((y + frame) % 255)) as u8;
-                pixel[1] = (((x) % 255).wrapping_add((y - frame) % 255)) as u8;
-                pixel[2] = ((x) % 255) as u8;
-                pixel[3] = 255;
-            }
+        event.update(|args| {
+            time += args.dt;
+            if time > texture_time {
+                for (x, y, mut pixel) in image_buffer.enumerate_pixels_mut() {
+                    pixel[0] = (((x) % 255).wrapping_add((y.wrapping_add(frame)) % 255)) as u8;
+                    pixel[1] = (((x) % 255).wrapping_add((y.wrapping_sub(frame)) % 255)) as u8;
+                    pixel[2] = ((x) % 255) as u8;
+                    pixel[3] = 255;
+                }
 
-            image_map.get_mut(ids.art).unwrap().update(&mut window.encoder, &image_buffer).unwrap();
+                image_map.get_mut(ids.art).unwrap().update(&mut window.encoder, &image_buffer).unwrap();
+
+                ui.needs_redraw();
+                time -= texture_time;
+
+                frame += 1;
+            }
 
             let size = window.size();
             let (image_width, image_height) = (size.width as f64, size.height as f64);
@@ -94,10 +108,6 @@ fn main() {
 
                 widget::Image::new().w_h(image_width, image_height).middle().set(ids.art, ui);
             }
-
-            ui.needs_redraw();
-
-            frame += 1;
         });
 
         window.draw_2d(&event, |c, g| {
