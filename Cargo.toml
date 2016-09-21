@@ -1,0 +1,10 @@
+[package]
+name = "algorithm_art"
+version = "0.1.0"
+authors = ["Kiley Owen <yelikdev@gmail.com>"]
+
+[dependencies]
+conrod = "*"
+piston_window = "0.52.0"
+find_folder = "*"
+image = "*"
